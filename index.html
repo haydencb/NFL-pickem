@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NFL Pick'em Dashboard - Week 5</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+    
+    body {
+      font-family: 'Inter', sans-serif;
+      transition: background-color 0.3s, color 0.3s;
+    }
+
+    body.dark {
+      background-color: #0b1329;
+      color: #f8fafc;
+    }
+    body.light {
+      background-color: #f1f5f9;
+      color: #0f172a;
+    }
+
+    .dark .bg-card { background-color: rgba(15, 23, 42, 0.85); border-color: #1e293b; }
+    .light .bg-card { background-color: #ffffff; border-color: #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
+
+    .dark .bg-header { background-color: rgba(15, 23, 42, 0.95); border-color: #1e293b; }
+    .light .bg-header { background-color: rgba(255, 255, 255, 0.95); border-color: #e2e8f0; }
+
+    .dark .table-head { background-color: rgba(30, 41, 59, 0.9); color: #94a3b8; border-color: #334155; }
+    .light .table-head { background-color: #f8fafc; color: #475569; border-color: #cbd5e1; }
+
+    .dark .text-sub { color: #94a3b8; }
+    .light .text-sub { color: #64748b; }
+
+    .dark .text-main { color: #f8fafc; }
+    .light .text-main { color: #0f172a; }
+
+    .dark .divide-custom { border-color: #1e293b; }
+    .light .divide-custom { border-color: #e2e8f0; }
+
+    .pick-leading {
+      background-color: #16a34a !important;
+      color: #ffffff !important;
+      font-weight: 700 !important;
+      border-radius: 0.375rem;
+      box-shadow: 0 2px 4px rgba(22, 163, 74, 0.25);
+    }
+    
+    .pick-losing {
+      background-color: #dc2626 !important;
+      color: #fecaca !important;
+      text-decoration: line-through;
+      font-weight: 500 !important;
+      opacity: 0.85;
+      border-radius: 0.375rem;
+    }
+
+    .pick-tied {
+      background-color: #475569 !important;
+      color: #f8fafc !important;
+      font-weight: 600 !important;
+      border-radius: 0.375rem;
+    }
+
+    .dark .pick-neutral { color: #94a3b8; }
+    .light .pick-neutral { color: #64748b; }
+
+    .live-pulse {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: #ef4444;
+      animation: pulse-ring 1.5s infinite;
+    }
+
+    @keyframes pulse-ring {
+      0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+      70% { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+    }
+
+    ::-webkit-scrollbar { height: 8px; width: 8px; }
+    .dark ::-webkit-scrollbar-track { background: #1e293b; }
+    .light ::-webkit-scrollbar-track { background: #e2e8f0; }
+    .dark ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+    .light ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+  </style>
+</head>
+<body class="dark min-h-screen pb-12">
+
+  <!-- Header -->
+  <header class="bg-header border-b sticky top-0 z-50 backdrop-blur-md shadow-lg transition-colors">
+    <div class="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex flex-wrap justify-between items-center gap-4">
+      <div class="flex items-center space-x-3">
+        <div class="bg-indigo-600 p-2.5 rounded-xl shadow-md text-white">
+          <i class="fa-solid fa-football text-2xl"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-xl sm:text-2xl font-black tracking-tight text-main">
+              NFL Pick'em Tracker
+            </h1>
+            <span class="text-xs font-black bg-gradient-to-r from-emerald-500 to-teal-500 text-white px-3 py-0.5 rounded-full shadow-md uppercase tracking-wider flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-white animate-ping"></span> WEEK 5 LIVE
+            </span>
+          </div>
+          <p class="text-xs text-sub">Real-time live scores, win probabilities & pick evaluations</p>
+        </div>
+      </div>
+
+      <!-- Controls -->
+      <div class="flex items-center space-x-3">
+        <div class="text-right hidden sm:block">
+          <div class="text-[10px] uppercase font-bold text-sub">Last Sync</div>
+          <div id="last-updated" class="text-xs font-semibold text-main">Fetching...</div>
+        </div>
+
+        <button id="theme-toggle" onclick="toggleTheme()" class="flex items-center space-x-1.5 bg-slate-800 dark:bg-slate-700 hover:bg-slate-700 dark:hover:bg-slate-600 text-slate-200 font-medium px-3 py-2 rounded-lg text-sm transition-all shadow-sm">
+          <i id="theme-icon" class="fa-solid fa-moon text-yellow-400"></i>
+          <span id="theme-text" class="text-xs hidden md:inline">Dark</span>
+        </button>
+
+        <button id="refresh-btn" onclick="fetchNFLScores()" class="flex items-center space-x-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-4 py-2 rounded-lg text-sm transition-all active:scale-95 shadow-md">
+          <i id="refresh-icon" class="fa-solid fa-arrows-rotate text-xs"></i>
+          <span>Refresh</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 mt-6 space-y-8">
+
+    <!-- Leaderboard Section -->
+    <section class="bg-card backdrop-blur-md rounded-2xl border p-5 sm:p-6 shadow-xl transition-colors">
+      <div class="flex flex-wrap items-center justify-between gap-4 mb-5 border-b pb-4 divide-custom">
+        <div>
+          <h2 class="text-lg sm:text-xl font-bold text-main flex items-center gap-2">
+            <i class="fa-solid fa-trophy text-yellow-500"></i> Season Standings & Live Leaderboard
+          </h2>
+          <p class="text-xs text-sub mt-0.5">Weeks 1-4 Prior Wins + Week 5 Live Points</p>
+        </div>
+
+        <div class="flex items-center space-x-3 text-xs font-semibold text-sub bg-slate-800/40 dark:bg-slate-800/80 px-3 py-1.5 rounded-lg border border-slate-700/50">
+          <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"></span> Leading / Won</div>
+          <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-red-600 inline-block"></span> Losing / Lost</div>
+          <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-slate-500 inline-block"></span> Scheduled</div>
+        </div>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="table-head text-xs uppercase tracking-wider font-bold border-b">
+              <th class="py-3.5 px-6 w-28 text-center">Rank</th>
+              <th class="py-3.5 px-6 font-bold text-main">Participant</th>
+              <th class="py-3.5 px-6 text-center w-36">Prior Wins (W1-W4)</th>
+              <th class="py-3.5 px-6 text-center w-32">Prior %[span_1](start_span)[span_1](end_span)</th>
+              <th class="py-3.5 px-6 text-center w-40">Week 5 Live</th>
+              <th class="py-3.5 px-6 text-center w-44 font-extrabold text-indigo-500 dark:text-indigo-400">Total Season Wins</th>
+            </tr>
+          </thead>
+          <tbody id="leaderboard-body" class="divide-y divide-custom text-sm font-medium">
+            <!-- Dynamically Populated -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Highlights Section -->
+    <section class="bg-card backdrop-blur-md rounded-2xl border p-5 sm:p-6 shadow-xl transition-colors">
+      <div class="flex items-center justify-between border-b pb-3 mb-4 divide-custom">
+        <h3 class="text-base font-bold text-main flex items-center gap-2">
+          <i class="fa-solid fa-award text-amber-500"></i> Weekly Highlights & Badges
+        </h3>
+        <span class="text-xs text-sub italic">Updated dynamically as games progress</span>
+      </div>
+
+      <div id="badges-container" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <!-- Dynamically generated badges -->
+      </div>
+    </section>
+
+    <!-- Matchups and Picks Table -->
+    <section class="bg-card backdrop-blur-md rounded-2xl border shadow-xl overflow-hidden transition-colors">
+      <div class="p-5 sm:p-6 border-b divide-custom flex flex-wrap justify-between items-center gap-4">
+        <div>
+          <h2 class="text-lg sm:text-xl font-bold text-main flex items-center gap-2">
+            <i class="fa-solid fa-list-check text-indigo-500 dark:text-indigo-400"></i> Week 5 Matchups, Picks & Live Win %
+          </h2>
+          <p class="text-xs text-sub mt-0.5">Live scores & win probabilities synced directly with ESPN API</p>
+        </div>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="table-head text-xs uppercase tracking-wider font-bold border-b">
+              <th class="py-3.5 px-4 min-w-[280px]">Matchup</th>
+              <th class="py-3.5 px-4 w-44 text-center">Score / Status / Win %</th>
+              <th class="py-3.5 px-2 w-32 text-center">Consensus</th>
+              <th class="py-3.5 px-2 text-center w-24">Dad</th>
+              <th class="py-3.5 px-2 text-center w-24">Mom</th>
+              <th class="py-3.5 px-2 text-center w-24">Hunter</th>
+              <th class="py-3.5 px-2 text-center w-24">Abby</th>
+              <th class="py-3.5 px-2 text-center w-24">Adam</th>
+              <th class="py-3.5 px-2 text-center w-24">Hayden</th>
+              <th class="py-3.5 px-2 text-center w-24">V</th>
+            </tr>
+          </thead>
+          <tbody id="matchups-body" class="divide-y divide-custom text-sm font-medium">
+            <!-- Dynamically Populated Rows -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const PLAYERS = ["Dad", "Mom", "Hunter", "Abby", "Adam", "Hayden", "V"];
+
+    // Prior Cumulative Wins (Weeks 1-4 Total Wins) & Correct Pick % from image[span_2](start_span)[span_2](end_span)
+    const PRIOR_WINS = {
+      "V": { wins: 38, pct: "57.58%" },
+      "Abby": { wins: 36, pct: "54.55%" },
+      "Mom": { wins: 36, pct: "54.55%" },
+      "Hunter": { wins: 35, pct: "53.03%" },
+      "Hayden": { wins: 34, pct: "51.52%" },
+      "Adam": { wins: 32, pct: "48.48%" },
+      "Dad": { wins: 32, pct: "48.48%" }
+    };
+
+    // Week 5 Picks Data
+    const PICKS_DATA = [
+      { away: "Philadelphia Eagles", home: "Jacksonville Jaguars", picks: { Dad: "Jacksonville Jaguars", Mom: "Jacksonville Jaguars", Hunter: "Jacksonville Jaguars", Abby: "Jacksonville Jaguars", Adam: "Jacksonville Jaguars", Hayden: "Philadelphia Eagles", V: "Jacksonville Jaguars" } },
+      { away: "Chicago Bears", home: "Green Bay Packers", picks: { Dad: "Chicago Bears", Mom: "Chicago Bears", Hunter: "Chicago Bears", Abby: "Green Bay Packers", Adam: "Chicago Bears", Hayden: "Green Bay Packers", V: "Chicago Bears" } },
+      { away: "Houston Texans", home: "Tennessee Titans", picks: { Dad: "Houston Texans", Mom: "Houston Texans", Hunter: "Houston Texans", Abby: "Houston Texans", Adam: "Tennessee Titans", Hayden: "Houston Texans", V: "Houston Texans" } },
+      { away: "Cincinnati Bengals", home: "Miami Dolphins", picks: { Dad: "Cincinnati Bengals", Mom: "Cincinnati Bengals", Hunter: "Cincinnati Bengals", Abby: "Cincinnati Bengals", Adam: "Cincinnati Bengals", Hayden: "Cincinnati Bengals", V: "Cincinnati Bengals" } },
+      { away: "Las Vegas Raiders", home: "New England Patriots", picks: { Dad: "New England Patriots", Mom: "New England Patriots", Hunter: "Las Vegas Raiders", Abby: "New England Patriots", Adam: "New England Patriots", Hayden: "New England Patriots", V: "Las Vegas Raiders" } },
+      { away: "Minnesota Vikings", home: "New Orleans Saints", picks: { Dad: "Minnesota Vikings", Mom: "Minnesota Vikings", Hunter: "Minnesota Vikings", Abby: "Minnesota Vikings", Adam: "Minnesota Vikings", Hayden: "New Orleans Saints", V: "Minnesota Vikings" } },
+      { away: "Cleveland Browns", home: "New York Jets", picks: { Dad: "New York Jets", Mom: "New York Jets", Hunter: "New York Jets", Abby: "New York Jets", Adam: "New York Jets", Hayden: "Cleveland Browns", V: "Cleveland Browns" } },
+      { away: "Indianapolis Colts", home: "Pittsburgh Steelers", picks: { Dad: "Pittsburgh Steelers", Mom: "Pittsburgh Steelers", Hunter: "Indianapolis Colts", Abby: "Pittsburgh Steelers", Adam: "Pittsburgh Steelers", Hayden: "Indianapolis Colts", V: "Indianapolis Colts" } },
+      { away: "New York Giants", home: "Washington Commanders", picks: { Dad: "New York Giants", Mom: "Washington Commanders", Hunter: "Washington Commanders", Abby: "Washington Commanders", Adam: "New York Giants", Hayden: "Washington Commanders", V: "New York Giants" } },
+      { away: "Denver Broncos", home: "Los Angeles Chargers", picks: { Dad: "Denver Broncos", Mom: "Denver Broncos", Hunter: "Denver Broncos", Abby: "Los Angeles Chargers", Adam: "Denver Broncos", Hayden: "Denver Broncos", V: "Denver Broncos" } },
+      { away: "Detroit Lions", home: "Arizona Cardinals", picks: { Dad: "Detroit Lions", Mom: "Detroit Lions", Hunter: "Detroit Lions", Abby: "Detroit Lions", Adam: "Detroit Lions", Hayden: "Detroit Lions", V: "Detroit Lions" } },
+      { away: "San Francisco 49ers", home: "Seattle Seahawks", picks: { Dad: "Seattle Seahawks", Mom: "Seattle Seahawks", Hunter: "Seattle Seahawks", Abby: "San Francisco 49ers", Adam: "Seattle Seahawks", Hayden: "Seattle Seahawks", V: "Seattle Seahawks" } },
+      { away: "Baltimore Ravens", home: "Atlanta Falcons", picks: { Dad: "Atlanta Falcons", Mom: "Atlanta Falcons", Hunter: "Atlanta Falcons", Abby: "Baltimore Ravens", Adam: "Atlanta Falcons", Hayden: "Baltimore Ravens", V: "Baltimore Ravens" } }
+    ];
+
+    function toggleTheme() {
+      const body = document.body;
+      const themeIcon = document.getElementById("theme-icon");
+      const themeText = document.getElementById("theme-text");
+
+      if (body.classList.contains("dark")) {
+        body.classList.remove("dark");
+        body.classList.add("light");
+        themeIcon.className = "fa-solid fa-sun text-amber-500";
+        themeText.innerText = "Light";
+        localStorage.setItem("theme", "light");
+      } else {
+        body.classList.remove("light");
+        body.classList.add("dark");
+        themeIcon.className = "fa-solid fa-moon text-yellow-400";
+        themeText.innerText = "Dark";
+        localStorage.setItem("theme", "dark");
+      }
+    }
+
+    (function initTheme() {
+      const savedTheme = localStorage.getItem("theme") || "dark";
+      if (savedTheme === "light") {
+        document.body.classList.remove("dark");
+        document.body.classList.add("light");
+        setTimeout(() => {
+          document.getElementById("theme-icon").className = "fa-solid fa-sun text-amber-500";
+          document.getElementById("theme-text").innerText = "Light";
+        }, 50);
+      }
+    })();
+
+    function checkTeamMatch(teamFullName, pickName) {
+      if (!teamFullName || !pickName) return false;
+      const cleanTeam = teamFullName.toLowerCase().trim();
+      const cleanPick = pickName.toLowerCase().trim();
+
+      if (cleanTeam.includes(cleanPick) || cleanPick.includes(cleanTeam)) return true;
+
+      const teamAliases = {
+        "bears": ["chicago", "bears"],
+        "vikings": ["minnesota", "vikings"],
+        "eagles": ["philadelphia", "eagles"],
+        "titans": ["tennessee", "titans"],
+        "packers": ["green bay", "packers"],
+        "jets": ["ny jets", "new york jets", "jets"],
+        "panthers": ["carolina", "panthers"],
+        "falcons": ["atlanta", "falcons"],
+        "saints": ["new orleans", "saints"],
+        "ravens": ["baltimore", "ravens"],
+        "bengals": ["cincinnati", "bengals"],
+        "texans": ["houston", "texans"],
+        "browns": ["cleveland", "browns"],
+        "buccaneers": ["tampa bay", "buccaneers", "bucs"],
+        "steelers": ["pittsburgh", "steelers"],
+        "patriots": ["new england", "patriots", "pats"],
+        "raiders": ["las vegas", "raiders"],
+        "chargers": ["la chargers", "los angeles chargers", "chargers"],
+        "jaguars": ["jacksonville", "jaguars", "jags"],
+        "broncos": ["denver", "broncos"],
+        "commanders": ["washington", "commanders"],
+        "cowboys": ["dallas", "cowboys"],
+        "seahawks": ["seattle", "seahawks"],
+        "cardinals": ["arizona", "cardinals"],
+        "49ers": ["san francisco", "49ers", "niners"],
+        "dolphins": ["miami", "dolphins"],
+        "colts": ["indianapolis", "colts"],
+        "chiefs": ["kansas city", "chiefs"],
+        "giants": ["ny giants", "new york giants", "giants"],
+        "lions": ["detroit", "lions"],
+        "bills": ["buffalo", "bills"],
+        "rams": ["la rams", "los angeles rams", "rams"]
+      };
+
+      const aliases = teamAliases[cleanPick] || [];
+      return aliases.some(alias => cleanTeam.includes(alias));
+    }
+
+    async function fetchNFLScores() {
+      const refreshIcon = document.getElementById('refresh-icon');
+      refreshIcon.classList.add('fa-spin');
+
+      try {
+        const response = await fetch("https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard");
+        const data = await response.json();
+        const liveEvents = data.events || [];
+
+        const gameMap = {};
+
+        liveEvents.forEach(event => {
+          const competition = event.competitions[0];
+          const homeComp = competition.competitors.find(c => c.homeAway === 'home');
+          const awayComp = competition.competitors.find(c => c.homeAway === 'away');
+
+          const statusState = event.status.type.state;
+          const statusDetail = event.status.type.shortDetail || event.status.type.detail;
+
+          const homeScore = parseInt(homeComp.score || 0, 10);
+          const awayScore = parseInt(awayComp.score || 0, 10);
+
+          let homeWinPct = 50;
+          let awayWinPct = 50;
+
+          if (competition.situation && competition.situation.lastPlay && competition.situation.lastPlay.probability) {
+            homeWinPct = Math.round((competition.situation.lastPlay.probability.homeWinPercentage || 0.5) * 100);
+            awayWinPct = 100 - homeWinPct;
+          } else if (homeScore !== awayScore && statusState === 'in') {
+            const diff = homeScore - awayScore;
+            homeWinPct = Math.min(99, Math.max(1, Math.round(50 + diff * 3.5)));
+            awayWinPct = 100 - homeWinPct;
+          } else if (statusState === 'post') {
+            homeWinPct = homeScore > awayScore ? 100 : (homeScore < awayScore ? 0 : 50);
+            awayWinPct = 100 - homeWinPct;
+          }
+
+          let leadingTeam = null;
+          let losingTeam = null;
+          let isTied = false;
+
+          if (homeScore > awayScore) {
+            leadingTeam = homeComp.team.displayName;
+            losingTeam = awayComp.team.displayName;
+          } else if (awayScore > homeScore) {
+            leadingTeam = awayComp.team.displayName;
+            losingTeam = homeComp.team.displayName;
+          } else {
+            isTied = true;
+          }
+
+          const gameObj = {
+            homeTeam: homeComp.team.displayName,
+            awayTeam: awayComp.team.displayName,
+            homeLogo: homeComp.team.logo,
+            awayLogo: awayComp.team.logo,
+            homeScore: homeScore,
+            awayScore: awayScore,
+            homeWinPct: homeWinPct,
+            awayWinPct: awayWinPct,
+            statusState: statusState,
+            statusDetail: statusDetail,
+            leadingTeam: leadingTeam,
+            losingTeam: losingTeam,
+            isTied: isTied
+          };
+
+          gameMap[homeComp.team.displayName.toLowerCase()] = gameObj;
+          gameMap[awayComp.team.displayName.toLowerCase()] = gameObj;
+        });
+
+        renderDashboard(gameMap);
+        
+        const now = new Date();
+        document.getElementById('last-updated').innerText = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+      } catch (err) {
+        console.error("Error fetching ESPN live scoreboard:", err);
+      }
+      refreshIcon.classList.remove('fa-spin');
+    }
+
+    function renderDashboard(gameMap) {
+      const tbody = document.getElementById("matchups-body");
+      tbody.innerHTML = "";
+
+      const playerStats = {};
+      PLAYERS.forEach(p => {
+        playerStats[p] = { 
+          priorWins: PRIOR_WINS[p] ? PRIOR_WINS[p].wins : 0, 
+          priorPct: PRIOR_WINS[p] ? PRIOR_WINS[p].pct : "0%",
+          week5Live: 0 
+        };
+      });
+
+      const loneWolfPicks = [];
+
+      PICKS_DATA.forEach((item) => {
+        let game = gameMap[item.home.toLowerCase()] || gameMap[item.away.toLowerCase()] || null;
+
+        const pickCounts = {};
+        PLAYERS.forEach(p => {
+          const pick = item.picks[p];
+          pickCounts[pick] = (pickCounts[pick] || 0) + 1;
+        });
+
+        PLAYERS.forEach(p => {
+          const pick = item.picks[p];
+          if (pickCounts[pick] === 1) {
+            loneWolfPicks.push({ player: p, pick: pick, matchup: `${item.away} vs. ${item.home}` });
+          }
+        });
+
+        const sortedPicks = Object.entries(pickCounts).sort((a,b) => b[1] - a[1]);
+        const topPick = sortedPicks[0];
+        const isUnanimous = topPick[1] === PLAYERS.length;
+        
+        let consensusHTML = "";
+        if (isUnanimous) {
+          consensusHTML = `<span class="bg-indigo-500/10 text-indigo-400 border border-indigo-500/30 text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap">7 - 0 Unanimous</span>`;
+        } else {
+          const secondPick = sortedPicks[1];
+          consensusHTML = `<span class="bg-amber-500/10 text-amber-400 border border-amber-500/30 text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap">${topPick[1]} - ${secondPick[1]} Split</span>`;
+        }
+
+        const tr = document.createElement("tr");
+        tr.className = "hover:bg-slate-800/40 dark:hover:bg-slate-800/50 transition-colors";
+
+        let awayLogoHTML = game && game.awayLogo ? `<img src="${game.awayLogo}" class="w-6 h-6 object-contain inline-block mr-1.5" alt="">` : '';
+        let homeLogoHTML = game && game.homeLogo ? `<img src="${game.homeLogo}" class="w-6 h-6 object-contain inline-block ml-1.5" alt="">` : '';
+
+        let matchupHTML = `
+          <td class="py-3.5 px-4 font-medium text-main">
+            <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+              <span class="inline-flex items-center">${awayLogoHTML} <span class="font-semibold whitespace-nowrap">${item.away}</span></span>
+              <span class="text-xs text-sub font-bold px-1">vs</span>
+              <span class="inline-flex items-center"><span class="font-semibold whitespace-nowrap">${item.home}</span> ${homeLogoHTML}</span>
+            </div>
+          </td>
+        `;
+
+        let statusHTML = "";
+        if (game) {
+          let badgeColor = "bg-slate-800 text-slate-400";
+          let liveIndicator = "";
+
+          if (game.statusState === 'in') {
+            badgeColor = "bg-amber-500/10 text-amber-500 border border-amber-500/30 font-bold";
+            liveIndicator = `<span class="live-pulse mr-1"></span>`;
+          } else if (game.statusState === 'post') {
+            badgeColor = "bg-emerald-500/10 text-emerald-500 border border-emerald-500/30 font-extrabold";
+          }
+
+          let winProbBar = `
+            <div class="w-full bg-slate-700/50 h-2 rounded-full overflow-hidden flex mt-1.5 shadow-inner" title="Away ${game.awayWinPct}% - ${game.homeWinPct}% Home">
+              <div class="bg-indigo-500 h-full transition-all duration-500" style="width: ${game.awayWinPct}%"></div>
+              <div class="bg-emerald-500 h-full transition-all duration-500" style="width: ${game.homeWinPct}%"></div>
+            </div>
+            <div class="flex justify-between text-[10px] text-sub mt-0.5 font-bold">
+              <span>${game.awayWinPct}%</span>
+              <span class="text-[9px] uppercase tracking-widest text-slate-500">Win Prob</span>
+              <span>${game.homeWinPct}%</span>
+            </div>
+          `;
+
+          statusHTML = `
+            <td class="py-3 px-4 text-center">
+              <div class="font-black text-main text-base tracking-wide">${game.awayScore} - ${game.homeScore}</div>
+              <div class="inline-flex items-center text-[11px] px-2 py-0.5 rounded-full ${badgeColor} mt-0.5 whitespace-nowrap">
+                ${liveIndicator}${game.statusDetail}
+              </div>
+              ${winProbBar}
+            </td>
+          `;
+        } else {
+          statusHTML = `
+            <td class="py-3 px-4 text-center text-sub">
+              <div class="text-xs font-medium">Scheduled</div>
+              <div class="text-[10px] opacity-75">Upcoming</div>
+            </td>
+          `;
+        }
+
+        let picksHTML = "";
+        PLAYERS.forEach(player => {
+          const pick = item.picks[player];
+          let cssClass = "pick-neutral";
+          let statusIcon = "";
+
+          if (game) {
+            const isPickedTeamHome = checkTeamMatch(game.homeTeam, pick);
+            const isPickedTeamAway = checkTeamMatch(game.awayTeam, pick);
+
+            if (isPickedTeamHome || isPickedTeamAway) {
+              if (game.isTied) {
+                cssClass = "pick-tied";
+                statusIcon = `<i class="fa-solid fa-minus text-[10px] ml-1 opacity-60"></i>`;
+              } else if (game.leadingTeam && checkTeamMatch(game.leadingTeam, pick)) {
+                cssClass = "pick-leading";
+                statusIcon = game.statusState === 'post' ? `<i class="fa-solid fa-check ml-1 text-xs"></i>` : `<i class="fa-solid fa-caret-up ml-1 text-emerald-100"></i>`;
+                playerStats[player].week5Live += 1;
+              } else if (game.losingTeam && checkTeamMatch(game.losingTeam, pick)) {
+                cssClass = "pick-losing";
+                statusIcon = game.statusState === 'post' ? `<i class="fa-solid fa-xmark ml-1 text-xs"></i>` : `<i class="fa-solid fa-caret-down ml-1 text-red-200"></i>`;
+              }
+            }
+          }
+
+          picksHTML += `
+            <td class="py-3 px-1 text-center">
+              <div class="py-1 px-1.5 ${cssClass} transition-all duration-300 flex items-center justify-center text-xs whitespace-nowrap">
+                <span>${pick}</span>${statusIcon}
+              </div>
+            </td>
+          `;
+        });
+
+        tr.innerHTML = matchupHTML + statusHTML + `<td class="py-3 px-2 text-center">${consensusHTML}</td>` + picksHTML;
+        tbody.appendChild(tr);
+      });
+
+      renderLeaderboard(playerStats);
+      renderBadges(playerStats, loneWolfPicks);
+    }
+
+    function renderLeaderboard(playerStats) {
+      const container = document.getElementById("leaderboard-body");
+      container.innerHTML = "";
+
+      const sortedPlayers = [...PLAYERS].sort((a, b) => {
+        const totalA = playerStats[a].priorWins + playerStats[a].week5Live;
+        const totalB = playerStats[b].priorWins + playerStats[b].week5Live;
+        return totalB - totalA;
+      });
+
+      const lowestScore = playerStats[sortedPlayers[sortedPlayers.length - 1]].priorWins + playerStats[sortedPlayers[sortedPlayers.length - 1]].week5Live;
+
+      let currentRank = 1;
+      sortedPlayers.forEach((player, index) => {
+        const stats = playerStats[player];
+        const totalWins = stats.priorWins + stats.week5Live;
+
+        if (index > 0) {
+          const prevPlayer = sortedPlayers[index - 1];
+          const prevTotal = playerStats[prevPlayer].priorWins + playerStats[prevPlayer].week5Live;
+          if (totalWins < prevTotal) {
+            currentRank = index + 1;
+          }
+        }
+
+        let rankBadge = `<span class="text-xs font-bold text-sub">#${currentRank}</span>`;
+        if (currentRank === 1) {
+          rankBadge = `<span class="bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 text-xs font-black px-2.5 py-1 rounded-full shadow-md inline-block">🥇 1ST</span>`;
+        } else if (currentRank === 2) {
+          rankBadge = `<span class="bg-slate-300 text-slate-950 text-xs font-black px-2.5 py-1 rounded-full shadow-md inline-block">🥈 2ND</span>`;
+        } else if (currentRank === 3) {
+          rankBadge = `<span class="bg-amber-700 text-amber-100 text-xs font-black px-2.5 py-1 rounded-full shadow-md inline-block">🥉 3RD</span>`;
+        } else if (totalWins === lowestScore) {
+          rankBadge = `<span class="bg-amber-950/80 text-amber-400 border border-amber-800/60 text-xs font-black px-2.5 py-1 rounded-full shadow-md inline-block" title="Last Place">💩 LAST</span>`;
+        }
+
+        const tr = document.createElement("tr");
+        tr.className = "hover:bg-slate-800/40 dark:hover:bg-slate-800/50 transition-colors";
+        tr.innerHTML = `
+          <td class="py-3.5 px-6 text-center">${rankBadge}</td>
+          <td class="py-3.5 px-6 font-bold text-main">${player}</td>
+          <td class="py-3.5 px-6 text-center text-sub">${stats.priorWins}</td>
+          <td class="py-3.5 px-6 text-center text-xs font-semibold text-slate-400">${stats.priorPct}</td>
+          <td class="py-3.5 px-6 text-center text-emerald-500 dark:text-emerald-400 font-extrabold">+${stats.week5Live}</td>
+          <td class="py-3.5 px-6 text-center font-black text-indigo-500 dark:text-indigo-400 text-base">${totalWins}</td>
+        `;
+        container.appendChild(tr);
+      });
+    }
+
+    function renderBadges(playerStats, loneWolfPicks) {
+      const container = document.getElementById("badges-container");
+      container.innerHTML = "";
+
+      const sortedBySeason = [...PLAYERS].sort((a,b) => (playerStats[b].priorWins + playerStats[b].week5Live) - (playerStats[a].priorWins + playerStats[a].week5Live));
+      const seasonLeader = sortedBySeason[0];
+      const seasonLeaderScore = playerStats[seasonLeader].priorWins + playerStats[seasonLeader].week5Live;
+
+      const sortedByWeek5 = [...PLAYERS].sort((a,b) => playerStats[b].week5Live - playerStats[a].week5Live);
+      const week5Leader = sortedByWeek5[0];
+      const week5LeaderScore = playerStats[week5Leader].week5Live;
+
+      container.innerHTML += `
+        <div class="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3.5 flex items-center space-x-3 shadow-sm">
+          <div class="text-3xl"><i class="fa-solid fa-crown text-amber-500"></i></div>
+          <div>
+            <div class="text-xs text-sub font-semibold">Season Leader</div>
+            <div class="text-base font-extrabold text-main">${seasonLeader} (${seasonLeaderScore} Wins)</div>
+          </div>
+        </div>
+      `;
+
+      container.innerHTML += `
+        <div class="bg-teal-500/10 border border-teal-500/30 rounded-xl p-3.5 flex items-center space-x-3 shadow-sm">
+          <div class="text-3xl"><i class="fa-solid fa-fire text-teal-400"></i></div>
+          <div>
+            <div class="text-xs text-sub font-semibold">Week 5 Hot Hand</div>
+            <div class="text-base font-extrabold text-main">${week5Leader} (+${week5LeaderScore} Wins)</div>
+          </div>
+        </div>
+      `;
+
+      let loneWolfText = loneWolfPicks.length > 0 
+        ? loneWolfPicks.map(lw => `<b>${lw.player}</b> (${lw.pick})`).join(", ")
+        : "None this week";
+
+      container.innerHTML += `
+        <div class="bg-indigo-500/10 border border-indigo-500/30 rounded-xl p-3.5 flex items-center space-x-3 shadow-sm">
+          <div class="text-3xl"><i class="fa-solid fa-wolf-pack-battalion text-indigo-400"></i></div>
+          <div>
+            <div class="text-xs text-sub font-semibold">Lone Wolf Picks</div>
+            <div class="text-xs font-medium text-main mt-0.5">${loneWolfText}</div>
+          </div>
+        </div>
+      `;
+    }
+
+    fetchNFLScores();
+    setInterval(fetchNFLScores, 30000);
+  </script>
+</body>
+</html>
